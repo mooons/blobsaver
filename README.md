@@ -18,9 +18,20 @@ A cross-platform GUI and CLI for automatically saving SHSH blobs. [Download](htt
 - Automate all features with the CLI
 - Save blobs to TSS Saver and SHSH Host as well with one click
 
-## Nightly Builds
+## Builds from each push
 
-You can get the latest nightly build [here](https://nightly.link/airsquared/blobsaver/workflows/main/master) or get older nightly builds at [Actions](https://github.com/airsquared/blobsaver/actions).
+The [CI workflow](https://github.com/mooons/blobsaver/actions/workflows/main.yml) builds runnable packages on every push and pull request. You can also start it with **Run workflow**. Local commits trigger CI once pushed to GitHub.
+
+Open a successful workflow run and download the package for your platform from **Artifacts**:
+
+| Artifact | Package |
+| --- | --- |
+| `macOS-arm64` | DMG with an Apple Silicon app |
+| `macOS-x64` | DMG with an Intel Mac app |
+| `Windows-x64` | EXE installer |
+| `Linux-x64` | DEB installer and TAR.GZ app bundle |
+
+Extract the downloaded artifact ZIP, then open the installer or unpack the Linux app bundle and run `blobsaver/bin/blobsaver`. Java is bundled. Linux device-reading dependencies are described in [README-linux.txt](dist/linux/README-linux.txt). Artifacts are kept for 30 days; these development builds are not notarized macOS releases.
 
 ## Feedback
 

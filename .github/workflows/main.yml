@@ -1,15 +1,33 @@
 name: CI
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
+    name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest, macos-13]
+        include:
+          - platform: macOS-arm64
+            os: macos-15
+            launcher: build/jpackage/blobsaver.app/Contents/MacOS/blobsaver
+          - platform: macOS-x64
+            os: macos-15-intel
+            launcher: build/jpackage/blobsaver.app/Contents/MacOS/blobsaver
+          - platform: Windows-x64
+            os: windows-2022
+            launcher: build/jpackage/blobsaver/blobsaver.exe
+          - platform: Linux-x64
+            os: ubuntu-22.04
+            launcher: build/jpackage/blobsaver/bin/blobsaver
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK
@@ -19,39 +37,51 @@ jobs:
           distribution: 'zulu'
       - uses: gradle/actions/setup-gradle@v4
       - name: Install Linux dependencies
-        run: sudo apt-get install libplist-dev libimobiledevice-dev libirecovery-1.0-dev
         if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libplist-dev libimobiledevice-dev libirecovery-1.0-dev fakeroot
       - name: Gradle build
-        run: ./gradlew build --no-daemon
-      - uses: actions/upload-artifact@v4
+        run: ./gradlew build --no-daemon --console=plain
+      - name: Check packaged launcher
+        env:
+          APP_EXECUTABLE: ${{ matrix.launcher }}
+        run: '"$APP_EXECUTABLE" --help'
+      - name: Upload runnable packages
+        uses: actions/upload-artifact@v4
         with:
-#          artifact-per-file: true
-#          artifact-name-rule: ${{ runner.os }}${ext}
-          name: ${{ runner.os }}-${{ runner.arch }}
+          name: ${{ matrix.platform }}
           path: build/distributions/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
       - name: Upload reports on failure
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4
         with:
-          name: failure-${{ runner.os }}
+          name: failure-${{ matrix.platform }}
           path: build/reports/
   release:
     name: Create public releases
     runs-on: ubuntu-latest
     needs: build
-    if: "startsWith(github.event.head_commit.message, 'Release')"
+    if: github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Release ')
+    permissions:
+      contents: write
     steps:
       - name: Get artifacts
         uses: actions/download-artifact@v4
       - name: Get version from commit
-        run: echo "VERSION=$(echo ${{ github.event.commits[0].message }} | awk '{print $2}')" >> $GITHUB_ENV
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          read -r _ version _ <<< "$COMMIT_MESSAGE"
+          test -n "$version"
+          printf 'VERSION=%s\n' "$version" >> "$GITHUB_ENV"
       - name: Release public builds
-        uses: "marvinpinto/action-automatic-releases@latest"
+        uses: softprops/action-gh-release@v2
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "${{ env.VERSION }}"
+          tag_name: ${{ env.VERSION }}
           prerelease: false
           draft: true
-          files: "**"
-      # TODO: replace with https://github.com/softprops/action-gh-release
-      #                 or https://github.com/ncipollo/release-action
+          files: "**/*"
