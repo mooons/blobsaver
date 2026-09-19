@@ -43,7 +43,8 @@ public final class Devices {
 
     private static final ObservableList<String> AppleTVList = unmodifiableArrayList("Apple TV 2G", "Apple TV 3",
             "Apple TV 3 (2013)", "Apple TV 4 (2015)", "Apple TV 4K", "Apple TV 4K (2021) (AppleTV11,1)", "Apple TV 4K (2022) (AppleTV14,1)");
-    private static final ObservableList<String> visionList = unmodifiableArrayList("Apple Vision Pro (RealityDevice14,1)");
+    private static final ObservableList<String> visionList = unmodifiableArrayList("Apple Vision Pro (RealityDevice14,1)",
+            "Apple Vision Pro (M5) (RealityDevice17,1)");
 
     private static final ObservableList<String> deviceTypes = unmodifiableArrayList("iPhone", "iPod", "iPad",
             "AppleTV", "Mac", "T2 Mac", "Apple Vision");
@@ -124,7 +125,7 @@ public final class Devices {
             return "iPad";
         } else if (identifier.startsWith("AppleTV")) {
             return "AppleTV";
-        } else if (identifier.startsWith("Mac")) {
+        } else if (identifier.startsWith("Mac") || identifier.startsWith("iMac")) {
             return "Mac";
         } else if (identifier.startsWith("iBridge")) {
             return "T2 Mac";
